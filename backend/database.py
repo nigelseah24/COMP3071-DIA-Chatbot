@@ -18,11 +18,11 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 
 # Jina AI API Key & Reader URL
-JINA_API_KEY = "jina_833f960bd0b94f919920f4dabb63af001uiZNzo-5urqa6K9XmLOrk5CgrbV"
+JINA_API_KEY = os.getenv("JINA_API_KEY")
 JINA_READER_URL = "https://r.jina.ai/"
 
 urls = [
-    "https://www.nottingham.ac.uk/qualitymanual/prog-and-mod-design-and-approval/mod-spec-guidance.aspx"
+    "https://www.nottingham.ac.uk/qualitymanual/prog-and-mod-design-and-approval/changes-to-prog-mod-specs.aspx"
 ]
 
 def extract_clean_text(url):
@@ -50,6 +50,18 @@ def extract_clean_text(url):
 
         soup = BeautifulSoup(page_response.text, "html.parser")
 
+        div_tag = soup.find('div', class_='sys_one_7030')
+        if div_tag:
+            h1_tag = div_tag.find('h1')
+            if h1_tag:
+                header_text = h1_tag.get_text(strip=True)
+                print("Header text: " + header_text)
+            else:
+                print("No <h1> tag found within the specified <div>.")
+        else:
+            print("No <div> with class 'sys_one_7030' found.")
+
+
         # Extract intro paragraph using BeautifulSoup
         intro_paragraph = soup.find("p", class_="introParagraph")
         intro_text = intro_paragraph.get_text(strip=True) if intro_paragraph else "No intro paragraph found"
@@ -58,7 +70,7 @@ def extract_clean_text(url):
         print(f"Error extracting intro paragraph from {url}: {str(e)}")
         intro_text = "No intro paragraph found"
 
-    return intro_text, cleaned_text
+    return intro_text, cleaned_text, header_text
     
     
     
@@ -69,7 +81,7 @@ def split_documents(text, chunk_size=1000, chunk_overlap=200):
 
 
 # Upsert vectors to Pinecone
-def upsert_vectors_to_pinecone(docs, source_url, intro_text):
+def upsert_vectors_to_pinecone(docs, source_url, intro_text, header_text):
     print(f"\n--- Upserting {len(docs)} chunks to Pinecone ---")
 
     vectors = []
@@ -81,7 +93,7 @@ def upsert_vectors_to_pinecone(docs, source_url, intro_text):
         )
         embedding = embedding_response.data[0].embedding
         
-        vectors.append((f"Module specification guidance-{i}", embedding, {"content": doc, "source_url": source_url, "intro_paragraph": intro_text}))
+        vectors.append((f"{header_text}-{i}", embedding, {"content": doc, "source_url": source_url, "intro_paragraph": intro_text}))
 
     index.upsert(vectors=vectors)
     print(f"--- Finished upserting {len(vectors)} vectors ---")
@@ -91,13 +103,13 @@ def upsert_vectors_to_pinecone(docs, source_url, intro_text):
 def process_and_store_documents(urls):
     for url in urls:
 
-        intro_text, cleaned_text = extract_clean_text(url)
+        intro_text, cleaned_text, header_text = extract_clean_text(url)
         if not cleaned_text:
             print(f"Skipping {url} due to extraction failure.")
             continue
 
         chunks = split_documents(cleaned_text)
-        upsert_vectors_to_pinecone(chunks, url, intro_text)
+        upsert_vectors_to_pinecone(chunks, url, intro_text, header_text)
         
 
 # Run the process to store documents
