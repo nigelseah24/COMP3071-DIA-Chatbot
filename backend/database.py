@@ -118,7 +118,29 @@ if __name__ == "__main__":
     process_and_store_documents(urls)  # Store in a custom namespace
 
 
+# Function to retrieve relevant vectors from Pinecone
+def retrieve_relevant_vectors(query: str, top_k: int = 3):
+    # Get the embedding for the query
+    embedding_response = client.embeddings.create(
+        input=query,
+        model="text-embedding-3-small"  # Use the same model as used for upserting
+    )
+    query_embedding = embedding_response.data[0].embedding
 
+    # Perform similarity search in Pinecone
+    search_results = index.query(vector=query_embedding, top_k=top_k, include_metadata=True)
+
+    # Format the response
+    relevant_docs = []
+    for match in search_results["matches"]:
+        relevant_docs.append({
+            "score": match["score"],
+            "content": match["metadata"]["content"],
+            "source_url": match["metadata"]["source_url"],
+            "intro_paragraph": match["metadata"].get("intro_paragraph", "No intro available")
+        })
+
+    return relevant_docs
 
 
 
