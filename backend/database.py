@@ -1,4 +1,5 @@
 import os
+import re
 import requests
 from dotenv import load_dotenv
 from pinecone import Pinecone
@@ -16,37 +17,39 @@ index = pc.Index("quality-manual")
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-
-# Jina AI API Key & Reader URL
-JINA_API_KEY = os.getenv("JINA_API_KEY")
-JINA_READER_URL = "https://r.jina.ai/"
-
 urls = [
     "https://www.nottingham.ac.uk/qualitymanual/prog-and-mod-design-and-approval/changes-to-prog-mod-specs.aspx"
 ]
 
 def extract_clean_text(url):
-    # Step 1: Extract full clean text using Jina AI
-    full_url = f"{JINA_READER_URL}{url}"
-    headers = {"Authorization": f"Bearer {JINA_API_KEY}"}
+    response = requests.get(url)
 
-    response = requests.get(full_url, headers=headers)
-    
-    print(f"Status Code: {response.status_code}")  # Check if request was successful
-    print(f"Raw Response: {response.text[:500]}")  # Print first 500 chars for debugging
-    
     if response.status_code == 200:
-        cleaned_text = response.text.strip()
+        soup = BeautifulSoup(response.text, 'html.parser')
+        text = soup.get_text(separator='\n')
+        lines = [line.strip() for line in text.splitlines() if line.strip()]
+        cleaned_text = '\n'.join(lines)
+        print(cleaned_text)
     else:
-        print(f"Failed to extract from {url}, Status Code: {response.status_code}")
-        return "", ""
+        print(f'Failed to retrieve content: {response.status_code}')
+        return "", "", ""
+    
+    pattern_without_header = r"\nUK\nChina\nMalaysia\nMain Menu\n.*?Covid-19\nPolicy A-Z\nA-Z\n"
+    text_without_header = re.sub(pattern_without_header, "", cleaned_text, flags=re.DOTALL)
 
-    # Step 2: Fetch the raw webpage HTML to extract intro paragraph
+    pattern_without_search = r"\nSearch the manual.*?\nSearch\n"
+    text_without_header_and_search = re.sub(pattern_without_search, "", text_without_header, flags=re.DOTALL)
+
+    pattern_without_footer = r"\nPolicies A-Z\nGovernance\nRecent changes.*?\nCampus maps\n|\nMore contact information\n|\nJobs\nBrowser does not support script.\nBrowser does not support script."
+    final_text = re.sub(pattern_without_footer, "", text_without_header_and_search, flags=re.DOTALL)
+    
+    # Step 2: Fetch the raw webpage HTML to extract intro paragraph and header
+    header_text = ""
     try:
         page_response = requests.get(url, timeout=10)
         if page_response.status_code != 200:
             print(f"Failed to fetch HTML from {url}, Status Code: {page_response.status_code}")
-            return "", cleaned_text
+            return "", cleaned_text, header_text
 
         soup = BeautifulSoup(page_response.text, "html.parser")
 
@@ -61,7 +64,6 @@ def extract_clean_text(url):
         else:
             print("No <div> with class 'sys_one_7030' found.")
 
-
         # Extract intro paragraph using BeautifulSoup
         intro_paragraph = soup.find("p", class_="introParagraph")
         intro_text = intro_paragraph.get_text(strip=True) if intro_paragraph else "No intro paragraph found"
@@ -70,8 +72,7 @@ def extract_clean_text(url):
         print(f"Error extracting intro paragraph from {url}: {str(e)}")
         intro_text = "No intro paragraph found"
 
-    return intro_text, cleaned_text, header_text
-    
+    return intro_text, final_text, header_text
     
     
 # Split text into meaningful chunks
@@ -103,13 +104,19 @@ def upsert_vectors_to_pinecone(docs, source_url, intro_text, header_text):
 def process_and_store_documents(urls):
     for url in urls:
 
+        # extract_clean_text(url)
         intro_text, cleaned_text, header_text = extract_clean_text(url)
         if not cleaned_text:
             print(f"Skipping {url} due to extraction failure.")
             continue
 
         chunks = split_documents(cleaned_text)
-        upsert_vectors_to_pinecone(chunks, url, intro_text, header_text)
+
+        print(chunks)
+
+        print("Header text: " + header_text)
+        print("Intro text: " + intro_text)
+        # upsert_vectors_to_pinecone(chunks, url, intro_text, header_text)
         
 
 # Run the process to store documents
