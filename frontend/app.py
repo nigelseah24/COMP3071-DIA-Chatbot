@@ -1,6 +1,6 @@
 import streamlit as st
 import requests
-import openai
+from openai import OpenAI
 import os
 from dotenv import load_dotenv
 
@@ -11,7 +11,7 @@ load_dotenv()
 FASTAPI_URL = "http://localhost:8000/retrieve" # Change this if your FastAPI runs on a different URL
 
 # OpenAI API Key
-client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # Streamlit UI Setup
 st.set_page_config(page_title="Quality Manual Chatbot", layout="wide")
@@ -42,6 +42,8 @@ def get_relevant_documents(query):
 def generate_response(query, context):
     prompt = f"""
     You are an AI assistant specialized in the university's Quality Manual.
+    Your primary role is to provide accurate information based on the provided context.
+    However, if the user's input is a greeting or a casual remark (e.g., "hi there," "hello," "how's it going?"), respond with a friendly introduction and offer assistance.
     Answer the user's question using ONLY the provided context.
     If you don't know the answer, say 'I'm not sure based on the available information.'
 
