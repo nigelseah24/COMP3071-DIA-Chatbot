@@ -52,7 +52,7 @@ def generate_response(query, context):
 
     User Query: {query}
 
-    AI Response:
+    Response:
     """
 
     response = client.chat.completions.create(

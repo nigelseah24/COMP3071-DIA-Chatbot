@@ -1,11 +1,10 @@
 import os
 import re
-import requests
 from dotenv import load_dotenv
 from pinecone import Pinecone
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from openai import OpenAI
-from bs4 import BeautifulSoup
+import tiktoken
 
 
 # Load environment variables
@@ -17,116 +16,116 @@ index = pc.Index("quality-manual")
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-urls = [
-    "https://www.nottingham.ac.uk/qualitymanual/prog-and-mod-design-and-approval/changes-to-prog-mod-specs.aspx"
-]
+# File path (update as needed)
+file_path = "C:\\Users\\PC 5\\Desktop\\COMP3071-DIA-Chatbot\\backend\\quality_manual_data_incremental.txt"
 
-def extract_clean_text(url):
-    response = requests.get(url)
+# Tokenizer for counting tokens
+encoding = tiktoken.get_encoding("cl100k_base")
 
-    if response.status_code == 200:
-        soup = BeautifulSoup(response.text, 'html.parser')
-        text = soup.get_text(separator='\n')
-        lines = [line.strip() for line in text.splitlines() if line.strip()]
-        cleaned_text = '\n'.join(lines)
-        print(cleaned_text)
-    else:
-        print(f'Failed to retrieve content: {response.status_code}')
-        return "", "", ""
+# Function to count tokens
+def count_tokens(text):
+    return len(encoding.encode(text))
+
+
+# Function to split text by delimiter
+def split_data_by_delimiter(text, delimiter="================================================================================"):
+    return [section.strip() for section in text.split(delimiter) if section.strip()]
+
+
+# Function to extract metadata (URL, Header, Intro, Content)
+def extract_metadata(section):
+    url_match = re.search(r"URL:\s*(.*)", section)
+    header_match = re.search(r"Header:\s*(.*)", section)
+    intro_match = re.search(r"Intro:\s*(.*)", section)
+
+    url = url_match.group(1).strip() if url_match else "Unknown URL"
+    header = header_match.group(1).strip() if header_match else "Unknown Header"
+    intro = intro_match.group(1).strip() if intro_match else "No intro available"
+
+    # Extract content (everything after "Content:")
+    content_start = section.find("Content:")
+    content = section[content_start + len("Content:"):].strip() if content_start != -1 else ""
     
-    pattern_without_header = r"\nUK\nChina\nMalaysia\nMain Menu\n.*?Covid-19\nPolicy A-Z\nA-Z\n"
-    text_without_header = re.sub(pattern_without_header, "", cleaned_text, flags=re.DOTALL)
+    print(f"✅ Extracted URL: {url}")
+    print(f"✅ Extracted Header: {header}")
+    print(f"✅ Extracted Intro: {intro[:100]}...")  # Print first 100 chars for preview
+    print(f"✅ Extracted Content Tokens: {count_tokens(content)} tokens")
 
-    pattern_without_search = r"\nSearch the manual.*?\nSearch\n"
-    text_without_header_and_search = re.sub(pattern_without_search, "", text_without_header, flags=re.DOTALL)
+    return url, header, intro, content
 
-    pattern_without_footer = r"\nPolicies A-Z\nGovernance\nRecent changes.*?\nCampus maps\n|\nMore contact information\n|\nJobs\nBrowser does not support script.\nBrowser does not support script."
-    final_text = re.sub(pattern_without_footer, "", text_without_header_and_search, flags=re.DOTALL)
-    
-    # Step 2: Fetch the raw webpage HTML to extract intro paragraph and header
-    header_text = ""
-    try:
-        page_response = requests.get(url, timeout=10)
-        if page_response.status_code != 200:
-            print(f"Failed to fetch HTML from {url}, Status Code: {page_response.status_code}")
-            return "", cleaned_text, header_text
+# Initialize RecursiveCharacterTextSplitter
+text_splitter = RecursiveCharacterTextSplitter(
+    chunk_size=1000,  # Maximum number of characters per chunk
+    chunk_overlap=200  # Number of characters to overlap between chunks
+)
 
-        soup = BeautifulSoup(page_response.text, "html.parser")
+# Function to split large content
+def split_large_content(content, max_tokens=8000):
+    tokens = count_tokens(content)
+    if tokens <= max_tokens:
+        return [content]  # Return as a single chunk
 
-        div_tag = soup.find('div', class_='sys_one_7030')
-        if div_tag:
-            h1_tag = div_tag.find('h1')
-            if h1_tag:
-                header_text = h1_tag.get_text(strip=True)
-                print("Header text: " + header_text)
-            else:
-                print("No <h1> tag found within the specified <div>.")
-        else:
-            print("No <div> with class 'sys_one_7030' found.")
+    print(f"⚠️ Content too large ({tokens} tokens). Splitting...")
 
-        # Extract intro paragraph using BeautifulSoup
-        intro_paragraph = soup.find("p", class_="introParagraph")
-        intro_text = intro_paragraph.get_text(strip=True) if intro_paragraph else "No intro paragraph found"
+    # Use the text splitter to create documents
+    documents = text_splitter.create_documents([content])
+    # Extract the page_content from each document
+    chunks = [doc.page_content for doc in documents]
 
-    except Exception as e:
-        print(f"Error extracting intro paragraph from {url}: {str(e)}")
-        intro_text = "No intro paragraph found"
-
-    return intro_text, final_text, header_text
-    
-    
-# Split text into meaningful chunks
-def split_documents(text, chunk_size=1000, chunk_overlap=200):
-    splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
-    return splitter.split_text(text)
+    print(f"✅ Split into {len(chunks)} chunks")
+    return chunks
 
 
-# Upsert vectors to Pinecone
-def upsert_vectors_to_pinecone(docs, source_url, intro_text, header_text):
-    print(f"\n--- Upserting {len(docs)} chunks to Pinecone ---")
+def upsert_vectors_to_pinecone(section_content, url, header, intro):
+    content_chunks = split_large_content(section_content)  # Split large content
 
-    vectors = []
-    
-    for i, doc in enumerate(docs):
+    for i, chunk in enumerate(content_chunks):
+        print(f"\n--- Generating embedding for chunk {i+1}/{len(content_chunks)} ---")
+
         embedding_response = client.embeddings.create(
-            input=doc,
-            model="text-embedding-3-small"  # Specify embedding model
+            input=chunk,
+            model="text-embedding-3-small"  # Adjust model if needed
         )
         embedding = embedding_response.data[0].embedding
-        
-        vectors.append((f"{header_text}-{i}", embedding, {"content": doc, "source_url": source_url, "intro_paragraph": intro_text}))
 
-    index.upsert(vectors=vectors)
-    print(f"--- Finished upserting {len(vectors)} vectors ---")
-    
-    
+        # Create a unique ID for each chunk
+        chunk_id = f"{header}_{i+1}"
+
+        # Upsert each chunk to Pinecone
+        vector = (
+            chunk_id,  # Unique ID for the chunk
+            embedding,
+            {"content": chunk, "source_url": url, "section_header": header, "intro_paragraph": intro}
+        )
+
+        index.upsert(vectors=[vector])
+        print(f"--- Finished upserting chunk {i+1} of section: {header} ---")
+
+
+
 # Process and store documents
-def process_and_store_documents(urls):
-    for url in urls:
+def process_and_store_documents(file_path):
+    with open(file_path, "r", encoding="utf-8") as file:
+        text_data = file.read()
 
-        # extract_clean_text(url)
-        intro_text, cleaned_text, header_text = extract_clean_text(url)
-        if not cleaned_text:
-            print(f"Skipping {url} due to extraction failure.")
-            continue
+    sections = split_data_by_delimiter(text_data)
+    
+    print(f"\n📂 Total sections found: {len(sections)}")
 
-        chunks = split_documents(cleaned_text)
+    for section in sections:
+        url, header, intro, content = extract_metadata(section)
 
-        print(chunks)
+        if content.strip():
+            upsert_vectors_to_pinecone(content, url, header, intro)
 
-        print("Header text: " + header_text)
-        print("Intro text: " + intro_text)
-        # upsert_vectors_to_pinecone(chunks, url, intro_text, header_text)
-        
 
-# Run the process to store documents
 if __name__ == "__main__":
-    #process_and_store_documents(urls)
-    process_and_store_documents(urls)  # Store in a custom namespace
+    process_and_store_documents(file_path)
+    print("\n✅ Data processing and upsertion completed!")
 
 
 # Function to retrieve relevant vectors from Pinecone
-def retrieve_relevant_vectors(query: str, top_k: int = 3):
+def retrieve_relevant_vectors(query: str, top_k: int = 5):
     # Get the embedding for the query
     embedding_response = client.embeddings.create(
         input=query,
@@ -142,8 +141,9 @@ def retrieve_relevant_vectors(query: str, top_k: int = 3):
     for match in search_results["matches"]:
         relevant_docs.append({
             "score": match["score"],
-            "content": match["metadata"]["content"],
-            "source_url": match["metadata"]["source_url"],
+            "content": match["metadata"].get("content", "No content available"),
+            "source_url": match["metadata"].get("source_url", "No URL available"),
+            "section_header": match["metadata"].get("section_header", "No header available"),
             "intro_paragraph": match["metadata"].get("intro_paragraph", "No intro available")
         })
 
