@@ -39,7 +39,7 @@ def get_relevant_documents(query):
         return []
 
 # Function to generate response using OpenAI LLM
-def generate_response(query, context):
+def generate_response(query, context, sources):
     prompt = f"""
     You are an AI assistant specialized in the university's Quality Manual.
     Your primary role is to provide accurate information based on the provided context.
@@ -58,9 +58,16 @@ def generate_response(query, context):
     response = client.chat.completions.create(
         model="gpt-4o-mini",  # Replace with your own model later
         messages=[{"role": "system", "content": prompt}],
-        max_tokens=300
+        max_tokens=500
     )
-    return response.choices[0].message.content.strip()
+    
+    # Append sources to the response
+    response_content = response.choices[0].message.content.strip()
+    if sources:
+        sources_list = "\n".join([f"- [{src['section_header']}]({src['source_url']})" for src in sources])
+        response_content += f"\n\n**Sources:**\n{sources_list}"
+
+    return response_content
 
 # User Input Section
 user_query = st.chat_input("Type your question here...")
@@ -78,7 +85,7 @@ if user_query:
     context = "\n\n".join([doc["content"] for doc in retrieved_docs]) if retrieved_docs else "No relevant documents found."
 
     # Generate AI response
-    ai_response = generate_response(user_query, context)
+    ai_response = generate_response(user_query, context, retrieved_docs)
 
     # Display AI response
     with st.chat_message("assistant"):
