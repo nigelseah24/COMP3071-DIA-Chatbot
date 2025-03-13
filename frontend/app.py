@@ -26,6 +26,11 @@ if "messages" not in st.session_state:
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
+        
+# Function to get the last 5 exchanges as chat memory
+def get_memory():
+    return "\n".join([f"{m['role'].capitalize()}: {m['content']}" for m in st.session_state.messages[-5:]])
+
 
 # Function to get relevant documents from FastAPI
 def get_relevant_documents(query):
@@ -39,12 +44,18 @@ def get_relevant_documents(query):
         return []
 
 # Function to generate response using OpenAI LLM
-def generate_response(query, context, sources):
+def generate_response(query, context, sources, chat_memory):
     prompt = f"""
     You are an AI assistant specialized in the university's Quality Manual.
     Your primary role is to provide accurate information based on the provided context.
     However, if the user's input is a greeting or a casual remark (e.g., "hi there," "hello," "how's it going?"), respond with a friendly introduction and offer assistance.
-    Answer the user's question using ONLY the provided context.
+    
+    Below is the previous conversation history. Use this to maintain context when answering the user's question:
+    
+    Previous conversation:
+    {chat_memory}
+    
+    Now, answer the user's query based on the new question and the retrieved context.
     If you don't know the answer, say 'I'm not sure based on the available information.'
 
     Context:
@@ -58,7 +69,7 @@ def generate_response(query, context, sources):
     response = client.chat.completions.create(
         model="gpt-4o-mini",  # Replace with your own model later
         messages=[{"role": "system", "content": prompt}],
-        max_tokens=500
+        max_tokens=1000
     )
     
     # Append sources to the response
@@ -83,9 +94,11 @@ if user_query:
 
     # Prepare context from retrieved docs
     context = "\n\n".join([doc["content"] for doc in retrieved_docs]) if retrieved_docs else "No relevant documents found."
+    
+    chat_memory = get_memory()
 
     # Generate AI response
-    ai_response = generate_response(user_query, context, retrieved_docs)
+    ai_response = generate_response(user_query, context, retrieved_docs, chat_memory)
 
     # Display AI response
     with st.chat_message("assistant"):
