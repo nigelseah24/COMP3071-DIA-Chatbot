@@ -55,8 +55,9 @@ def generate_response(query, context, sources, chat_memory):
     Previous conversation:
     {chat_memory}
     
-    Now, answer the user's query based on the new question and the retrieved context.
-    If you don't know the answer, say 'I'm not sure based on the available information.'
+    Now, answer the user's query based on your knowledge on the Quality Manual of the University of Nottingham.
+    If you don't know the answer, you can refer to the retrieved context to generate an answer.
+    If you don't know the answer even with the context, say 'I'm not sure based on the available information.'
 
     Context:
     {context}
@@ -67,7 +68,7 @@ def generate_response(query, context, sources, chat_memory):
     """
 
     response = client.chat.completions.create(
-        model="gpt-4o-mini",  # Replace with your own model later
+        model="ft:gpt-3.5-turbo-0125:personal::BEXJyNN3",  # Replace with your own model later
         messages=[{"role": "system", "content": prompt}],
         max_tokens=1000
     )
