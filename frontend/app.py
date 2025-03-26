@@ -3,6 +3,7 @@ import requests
 from openai import OpenAI
 import os
 from dotenv import load_dotenv
+from namespace_classifier import get_regulation_page  # Import our regulation function
 
 # Load environment variables
 load_dotenv()
@@ -81,13 +82,17 @@ def generate_response(query, context, sources, chat_memory):
 user_query = st.chat_input("Type your question here...")
 
 # Toggle for Regulations mode appears below the input box
-regulations_mode = st.checkbox("Regulations")
+regulations_mode = st.checkbox("Ask regarding Acaedmic Regulations")
 
-# the if statements are only for 1 query
+# Process the input query
 if user_query:
     if regulations_mode:
         # Regulations mode logic:
-        if "regulations_query" not in st.session_state.regulations_flow and "student_type" not in st.session_state.regulations_flow and "regulations_year" not in st.session_state.regulations_flow:
+        if ("regulations_query" not in st.session_state.regulations_flow 
+            and "student_type" not in st.session_state.regulations_flow 
+            and "honour_type" not in st.session_state.regulations_flow
+            and "regulations_year" not in st.session_state.regulations_flow):
+            # Step 1: Ask for the regulations query
             with st.chat_message("user"):
                 st.markdown(user_query)
             st.session_state.messages.append({"role": "user", "content": user_query})
@@ -95,33 +100,113 @@ if user_query:
             with st.chat_message("assistant"):
                 st.markdown("Are you asking with regards to **undergraduate** or **postgraduate** regulations?")
             st.session_state.messages.append({"role": "assistant", "content": "Are you asking with regards to **undergraduate** or **postgraduate** regulations?"})
-        elif "regulations_query" in st.session_state.regulations_flow and "student_type" not in st.session_state.regulations_flow and "regulations_year" not in st.session_state.regulations_flow:
-            st.session_state.regulations_flow["student_type"] = user_query
-            st.session_state.messages.append({"role": "user", "content": user_query})
-            with st.chat_message("user"):
-                st.markdown(st.session_state.regulations_flow["student_type"])
-            with st.chat_message("assistant"):
-                st.markdown(f"Which **year** of {st.session_state.regulations_flow["student_type"]} regulations would you like to refer to?")
-            st.session_state.messages.append({"role": "assistant", "content": f"Which **year** of {st.session_state.regulations_flow['student_type']} regulations would you like to refer to?"})
-        elif "regulations_query" in st.session_state.regulations_flow and "student_type" in st.session_state.regulations_flow and "regulations_year" not in st.session_state.regulations_flow:
-            st.session_state.regulations_flow["regulations_year"] = user_query
-            st.session_state.messages.append({"role": "user", "content": user_query})
-            with st.chat_message("user"):
-                st.markdown(st.session_state.regulations_flow["regulations_year"])
-        # if all 3 queries are in, and if there is a new query, update the regulations_query
+        
+        elif ("regulations_query" in st.session_state.regulations_flow 
+              and "student_type" not in st.session_state.regulations_flow 
+              and "honour_type" not in st.session_state.regulations_flow  
+              and "regulations_year" not in st.session_state.regulations_flow):
+            # Step 2: Ask for the program type and validate it.
+            student_type_input = user_query.strip().lower()
+            if student_type_input not in ["undergraduate", "postgraduate"]:
+                with st.chat_message("assistant"):
+                    st.markdown("Please enter a valid program type: **undergraduate** or **postgraduate**.")
+                st.session_state.messages.append({"role": "assistant", "content": "Invalid program type. Please enter either 'undergraduate' or 'postgraduate'."})
+            else:
+                st.session_state.regulations_flow["student_type"] = student_type_input
+                st.session_state.messages.append({"role": "user", "content": user_query})
+                with st.chat_message("user"):
+                    st.markdown(student_type_input)
+                # Only ask about honours for undergraduate queries.
+                if student_type_input == "undergraduate":
+                    with st.chat_message("assistant"):
+                        st.markdown("Are you asking with regards to **Honours** or **Non-Honours** regulations?")
+                    st.session_state.messages.append({"role": "assistant", "content": "Are you asking with regards to Honours or Non-Honours regulations?"})
+                else:
+                    # For postgraduate, skip the honours step and ask for the year.
+                    with st.chat_message("assistant"):
+                        st.markdown("Which **year** of postgraduate regulations would you like to refer to?")
+                    st.session_state.messages.append({"role": "assistant", "content": "Which year of postgraduate regulations would you like to refer to?"})
+        
+        elif ("regulations_query" in st.session_state.regulations_flow 
+              and "student_type" in st.session_state.regulations_flow 
+              and st.session_state.regulations_flow["student_type"] == "undergraduate"
+              and "honour_type" not in st.session_state.regulations_flow  
+              and "regulations_year" not in st.session_state.regulations_flow):
+            # Step 3 (for undergraduate): Ask for honour type and validate it.
+            honour_type_input = user_query.strip().lower()
+            if honour_type_input not in ["honours", "non-honours"]:
+                with st.chat_message("assistant"):
+                    st.markdown("Please enter a valid honour type: **honours** or **non-honours**.")
+                st.session_state.messages.append({"role": "assistant", "content": "Invalid honour type. Please enter either 'honours' or 'non-honours'."})
+            else:
+                st.session_state.regulations_flow["honour_type"] = honour_type_input
+                st.session_state.messages.append({"role": "user", "content": user_query})
+                with st.chat_message("user"):
+                    st.markdown(honour_type_input)
+                with st.chat_message("assistant"):
+                    st.markdown(f"Which **year** of {st.session_state.regulations_flow['student_type']} regulations would you like to refer to?")
+                st.session_state.messages.append({"role": "assistant", "content": f"Which year of {st.session_state.regulations_flow['student_type']} regulations would you like to refer to?"})
+        
+        elif ("regulations_query" in st.session_state.regulations_flow 
+              and "student_type" in st.session_state.regulations_flow 
+              and ((st.session_state.regulations_flow["student_type"] == "undergraduate" and "honour_type" in st.session_state.regulations_flow)
+                   or st.session_state.regulations_flow["student_type"] == "postgraduate")
+              and "regulations_year" not in st.session_state.regulations_flow):
+            # Step 4: Ask for the year and validate it.
+            year_input = user_query.strip()
+            try:
+                reg_year = int(year_input)
+            except ValueError:
+                with st.chat_message("assistant"):
+                    st.markdown("The year you provided is not valid. Please enter a valid year (e.g., 2020).")
+                st.session_state.messages.append({"role": "assistant", "content": "Invalid year. Please enter a valid year (e.g., 2020)."})
+            else:
+                st.session_state.regulations_flow["regulations_year"] = year_input
+                st.session_state.messages.append({"role": "user", "content": year_input})
+                
+                # Now that we have all required information, call get_regulation_page.
+                program = st.session_state.regulations_flow["student_type"]
+                if program == "undergraduate":
+                    # For undergraduate, use honour_type to decide which regulation to get.
+                    honour_type = st.session_state.regulations_flow.get("honour_type", "honours")
+                    if honour_type == "non-honours":
+                        regulation_id = get_regulation_page(reg_year, program="undergraduate", student_type="non-honours")
+                    else:
+                        regulation_id = get_regulation_page(reg_year, program="undergraduate", student_type="honours")
+                elif program == "postgraduate":
+                    regulation_id = get_regulation_page(reg_year, program="postgraduate")
+                else:
+                    regulation_id = "unknown program"
+                
+                with st.chat_message("assistant"):
+                    st.markdown(f"The relevant regulation page is: **{regulation_id}**")
+                    st.json(st.session_state['regulations_flow'])
+                st.session_state.messages.append({"role": "assistant", "content": f"The relevant regulation page is: **{regulation_id}**"})
+        
         else:
+            # If all pieces are already in, update the regulations query and display the regulation page.
             st.session_state.regulations_flow["regulations_query"] = user_query
             st.session_state.messages.append({"role": "user", "content": user_query})
             with st.chat_message("user"):
                 st.markdown(st.session_state.regulations_flow["regulations_query"])
-
-        memory_data = st.session_state.regulations_flow
-        st.write("**Collected Regulations Data:**")
-        st.json(memory_data)
-        st.session_state.messages.append({
-            "role": "assistant",
-            "content": f"Collected Regulations Data: {memory_data}"
-        })
+            
+            # Re-run the lookup if needed.
+            try:
+                reg_year = int(st.session_state.regulations_flow.get("regulations_year", 0))
+            except ValueError:
+                reg_year = 0
+            program = st.session_state.regulations_flow.get("student_type", "undergraduate")
+            if program == "undergraduate":
+                honour_type = st.session_state.regulations_flow.get("honour_type", "honours")
+                regulation_id = get_regulation_page(reg_year, program="undergraduate", student_type=honour_type)
+            elif program == "postgraduate":
+                regulation_id = get_regulation_page(reg_year, program="postgraduate")
+            else:
+                regulation_id = "unknown program"
+            with st.chat_message("assistant"):
+                st.markdown(f"The relevant regulation page is: **{regulation_id}**")
+            st.session_state.messages.append({"role": "assistant", "content": f"The relevant regulation page is: **{regulation_id}**"})
+    
     else:
         # Reset regulations flow if not in regulations mode
         st.session_state.regulations_flow = {}
