@@ -2,8 +2,8 @@ import json
 import re
 
 # File paths (update as needed)
-file_path = "C:\\Users\\PC 5\\Desktop\\COMP3071-DIA-Chatbot\\backend\\quality_manual_data_incremental.txt"
-output_json_path = "structured_quality_manual.json"
+file_path = "C:\\Users\\PC 5\\Desktop\\COMP3071-DIA-Chatbot\\backend\\postgraduate_regulations.txt"
+output_json_path = "postgraduate_regulations.json"
 
 # Read the data from the txt file
 with open(file_path, 'r', encoding='utf-8') as file:

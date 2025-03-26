@@ -17,7 +17,7 @@ index = pc.Index("quality-manual")
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # File path (update as needed)
-file_path = "C:\\Users\\PC 5\\Desktop\\COMP3071-DIA-Chatbot\\backend\\quality_manual_data_incremental.txt"
+file_path = "C:\\Users\\PC 5\\Desktop\\COMP3071-DIA-Chatbot\\backend\\undergraduate_regulations.txt"
 
 # Tokenizer for counting tokens
 encoding = tiktoken.get_encoding("cl100k_base")
@@ -76,7 +76,7 @@ def split_large_content(content, max_tokens=8000):
     return chunks
 
 
-def upsert_vectors_to_pinecone(section_content, url, header, intro):
+def upsert_vectors_to_pinecone(section_content, url, header, intro, namespace):
     content_chunks = split_large_content(section_content)  # Split large content
 
     for i, chunk in enumerate(content_chunks):
@@ -98,8 +98,8 @@ def upsert_vectors_to_pinecone(section_content, url, header, intro):
             {"content": chunk, "source_url": url, "section_header": header, "intro_paragraph": intro}
         )
 
-        index.upsert(vectors=[vector])
-        print(f"--- Finished upserting chunk {i+1} of section: {header} ---")
+        index.upsert(vectors=[vector], namespace = namespace)
+        print(f"--- Finished upserting chunk {i+1} of section: {header} into namespace: {namespace} ---")
 
 
 
@@ -116,7 +116,7 @@ def process_and_store_documents(file_path):
         url, header, intro, content = extract_metadata(section)
 
         if content.strip():
-            upsert_vectors_to_pinecone(content, url, header, intro)
+            upsert_vectors_to_pinecone(content, url, header, intro, namespace="undergraduate_regulations")
 
 
 if __name__ == "__main__":
