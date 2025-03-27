@@ -17,7 +17,7 @@ index = pc.Index("quality-manual")
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # File path (update as needed)
-file_path = "C:\\Users\\PC 5\\Desktop\\COMP3071-DIA-Chatbot\\backend\\undergraduate_regulations.txt"
+file_path = "C:\\Users\\PC 5\\Desktop\\COMP3071-DIA-Chatbot\\postgraduate regulations files\\Regulations before September 2006.txt"
 
 # Tokenizer for counting tokens
 encoding = tiktoken.get_encoding("cl100k_base")
@@ -26,10 +26,6 @@ encoding = tiktoken.get_encoding("cl100k_base")
 def count_tokens(text):
     return len(encoding.encode(text))
 
-
-# Function to split text by delimiter
-def split_data_by_delimiter(text, delimiter="================================================================================"):
-    return [section.strip() for section in text.split(delimiter) if section.strip()]
 
 
 # Function to extract metadata (URL, Header, Intro, Content)
@@ -108,15 +104,10 @@ def process_and_store_documents(file_path):
     with open(file_path, "r", encoding="utf-8") as file:
         text_data = file.read()
 
-    sections = split_data_by_delimiter(text_data)
-    
-    print(f"\n📂 Total sections found: {len(sections)}")
+    url, header, intro, content = extract_metadata(text_data)
 
-    for section in sections:
-        url, header, intro, content = extract_metadata(section)
-
-        if content.strip():
-            upsert_vectors_to_pinecone(content, url, header, intro, namespace="undergraduate_regulations")
+    if content.strip():
+        upsert_vectors_to_pinecone(content, url, header, intro, namespace="pg-null-sep2006")
 
 
 if __name__ == "__main__":
