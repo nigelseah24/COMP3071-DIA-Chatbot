@@ -19,6 +19,21 @@ st.set_page_config(page_title="Quality Manual Chatbot", layout="wide")
 st.title("📖 Quality Manual Chatbot")
 st.write("Ask me anything about the Quality Manual!")
 
+# Display Academic Regulations explanation when checkbox is selected
+regulations_mode = st.checkbox("Ask regarding Academic Regulations")
+
+if regulations_mode:
+    st.subheader("What are Academic Regulations?")
+    st.markdown("""
+    **Academic Regulations** are a set of formal guidelines that outline the rules and expectations for undergraduate (and postgraduate) study. They ensure consistency and fairness in academic processes. Here are some key examples of what the content covers:
+    
+    - **Passing Marks:** The regulations specify that the pass mark for a module is **40%**, which is the minimum required to pass.
+    - **Module Selection and Credit Limits:** Students must select modules in accordance with their programme's requirements. There are also limits on the number of credits a student can register for in any one semester.
+    - **Assessment and Re-assessment Procedures:** Guidelines detail the processes for assessments and the options available if a module is failed, including opportunities for re-assessment.
+    - **Degree Classification:** They outline how final marks are calculated and how degree classifications (e.g., First Class, Second Class, etc.) are determined.
+    - **Progression Requirements:** The regulations state the criteria a student must meet to advance from one stage of their course to the next.
+    """)
+    
 # Initialize chat history and regulations memory in session state
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -81,9 +96,6 @@ def generate_response(query, context, sources, chat_memory):
 # Main user input
 user_query = st.chat_input("Type your question here...")
 
-# Toggle for Regulations mode appears below the input box
-regulations_mode = st.checkbox("Ask regarding Acaedmic Regulations")
-
 # Process the input query
 if user_query:
     if regulations_mode:
@@ -125,7 +137,7 @@ if user_query:
                     # For postgraduate, skip the honours step and ask for the year.
                     with st.chat_message("assistant"):
                         st.markdown("Which **year** of postgraduate regulations would you like to refer to?")
-                    st.session_state.messages.append({"role": "assistant", "content": "Which year of postgraduate regulations would you like to refer to?"})
+                    st.session_state.messages.append({"role": "assistant", "content": "Which **year** of postgraduate regulations would you like to refer to?"})
         
         elif ("regulations_query" in st.session_state.regulations_flow 
               and "student_type" in st.session_state.regulations_flow 
@@ -145,7 +157,7 @@ if user_query:
                     st.markdown(honour_type_input)
                 with st.chat_message("assistant"):
                     st.markdown(f"Which **year** of {st.session_state.regulations_flow['student_type']} regulations would you like to refer to?")
-                st.session_state.messages.append({"role": "assistant", "content": f"Which year of {st.session_state.regulations_flow['student_type']} regulations would you like to refer to?"})
+                st.session_state.messages.append({"role": "assistant", "content": f"Which **year** of {st.session_state.regulations_flow['student_type']} regulations would you like to refer to?"})
         
         elif ("regulations_query" in st.session_state.regulations_flow 
               and "student_type" in st.session_state.regulations_flow 
@@ -162,6 +174,8 @@ if user_query:
                 st.session_state.messages.append({"role": "assistant", "content": "Invalid year. Please enter a valid year (e.g., 2020)."})
             else:
                 st.session_state.regulations_flow["regulations_year"] = year_input
+                with st.chat_message("user"):
+                    st.markdown(year_input)
                 st.session_state.messages.append({"role": "user", "content": year_input})
                 
                 # Now that we have all required information, call get_regulation_page.
@@ -178,20 +192,10 @@ if user_query:
                 else:
                     regulation_id = "unknown program"
                 
-                # with st.chat_message("assistant"):
-                #     st.markdown(f"The relevant regulation page is: **{regulation_id}**")
-                #     st.json(st.session_state['regulations_flow'])
-                # st.session_state.messages.append({"role": "assistant", "content": f"The relevant regulation page is: **{regulation_id}**"})
-                
                 retrieved_docs = get_relevant_documents(st.session_state['regulations_flow']['regulations_query'], namespace=regulation_id)
                 context = "\n\n".join([doc["content"] for doc in retrieved_docs]) if retrieved_docs else "No relevant documents found."
-                print("Context docs: " + context)
                 chat_memory = get_memory()
                 ai_response = generate_response(st.session_state['regulations_flow']['regulations_query'], context, retrieved_docs, chat_memory)
-                
-                with st.chat_message("assistant"):
-                    st.markdown(f"The relevant regulation page is: **{regulation_id}**")
-                st.session_state.messages.append({"role": "assistant", "content": f"The relevant regulation page is: **{regulation_id}**"})
                 
                 with st.chat_message("assistant"):
                     st.markdown(ai_response)
@@ -221,7 +225,6 @@ if user_query:
             
             retrieved_docs = get_relevant_documents(st.session_state['regulations_flow']['regulations_query'], namespace=regulation_id)
             context = "\n\n".join([doc["content"] for doc in retrieved_docs]) if retrieved_docs else "No relevant documents found."
-            print("Context docs: " + context)
             chat_memory = get_memory()
             ai_response = generate_response(st.session_state['regulations_flow']['regulations_query'], context, retrieved_docs, chat_memory)
             
@@ -234,7 +237,6 @@ if user_query:
 
             st.session_state.messages.append({"role": "assistant", "content": ai_response})
             
-    
     else:
         # Reset regulations flow if not in regulations mode
         st.session_state.regulations_flow = {}
