@@ -116,7 +116,7 @@ if __name__ == "__main__":
 
 
 # Function to retrieve relevant vectors from Pinecone
-def retrieve_relevant_vectors(query: str, top_k: int = 5):
+def retrieve_relevant_vectors(query: str, namespace: str, top_k: int = 5):
     # Get the embedding for the query
     embedding_response = client.embeddings.create(
         input=query,
@@ -125,7 +125,7 @@ def retrieve_relevant_vectors(query: str, top_k: int = 5):
     query_embedding = embedding_response.data[0].embedding
 
     # Perform similarity search in Pinecone
-    search_results = index.query(vector=query_embedding, top_k=top_k, include_metadata=True)
+    search_results = index.query(vector=query_embedding, top_k=top_k, include_metadata=True, namespace=namespace)
 
     # Format the response
     relevant_docs = []

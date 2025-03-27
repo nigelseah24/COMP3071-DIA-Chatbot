@@ -16,8 +16,10 @@ app.add_middleware(
 
 class QueryRequest(BaseModel):
     query: str
+    top_k: int = 5
+    namespace: str = "general"
 
 @app.post("/retrieve")
 async def root(request: QueryRequest):
-    results = retrieve_relevant_vectors(request.query)
+    results = retrieve_relevant_vectors(request.query, namespace=request.namespace, top_k=request.top_k)
     return {"results": results}

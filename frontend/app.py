@@ -35,8 +35,8 @@ def get_memory():
     return "\n".join([f"{m['role'].capitalize()}: {m['content']}" for m in st.session_state.messages[-5:]])
 
 # Function to get relevant documents from FastAPI (for regular conversation)
-def get_relevant_documents(query):
-    payload = {"query": query, "top_k": 5}
+def get_relevant_documents(query, namespace="general"):
+    payload = {"query": query, "top_k": 5, "namespace": namespace}
     response = requests.post(FASTAPI_URL, json=payload)
     if response.status_code == 200:
         return response.json().get("results", [])
@@ -178,10 +178,25 @@ if user_query:
                 else:
                     regulation_id = "unknown program"
                 
+                # with st.chat_message("assistant"):
+                #     st.markdown(f"The relevant regulation page is: **{regulation_id}**")
+                #     st.json(st.session_state['regulations_flow'])
+                # st.session_state.messages.append({"role": "assistant", "content": f"The relevant regulation page is: **{regulation_id}**"})
+                
+                retrieved_docs = get_relevant_documents(st.session_state['regulations_flow']['regulations_query'], namespace=regulation_id)
+                context = "\n\n".join([doc["content"] for doc in retrieved_docs]) if retrieved_docs else "No relevant documents found."
+                print("Context docs: " + context)
+                chat_memory = get_memory()
+                ai_response = generate_response(st.session_state['regulations_flow']['regulations_query'], context, retrieved_docs, chat_memory)
+                
                 with st.chat_message("assistant"):
                     st.markdown(f"The relevant regulation page is: **{regulation_id}**")
-                    st.json(st.session_state['regulations_flow'])
                 st.session_state.messages.append({"role": "assistant", "content": f"The relevant regulation page is: **{regulation_id}**"})
+                
+                with st.chat_message("assistant"):
+                    st.markdown(ai_response)
+
+                st.session_state.messages.append({"role": "assistant", "content": ai_response})
         
         else:
             # If all pieces are already in, update the regulations query and display the regulation page.
@@ -203,9 +218,22 @@ if user_query:
                 regulation_id = get_regulation_page(reg_year, program="postgraduate")
             else:
                 regulation_id = "unknown program"
+            
+            retrieved_docs = get_relevant_documents(st.session_state['regulations_flow']['regulations_query'], namespace=regulation_id)
+            context = "\n\n".join([doc["content"] for doc in retrieved_docs]) if retrieved_docs else "No relevant documents found."
+            print("Context docs: " + context)
+            chat_memory = get_memory()
+            ai_response = generate_response(st.session_state['regulations_flow']['regulations_query'], context, retrieved_docs, chat_memory)
+            
             with st.chat_message("assistant"):
                 st.markdown(f"The relevant regulation page is: **{regulation_id}**")
             st.session_state.messages.append({"role": "assistant", "content": f"The relevant regulation page is: **{regulation_id}**"})
+            
+            with st.chat_message("assistant"):
+                st.markdown(ai_response)
+
+            st.session_state.messages.append({"role": "assistant", "content": ai_response})
+            
     
     else:
         # Reset regulations flow if not in regulations mode
@@ -215,7 +243,7 @@ if user_query:
         st.session_state.messages.append({"role": "user", "content": user_query})
         with st.chat_message("user"):
             st.markdown(user_query)
-        retrieved_docs = get_relevant_documents(user_query)
+        retrieved_docs = get_relevant_documents(user_query, namespace="general")
         context = "\n\n".join([doc["content"] for doc in retrieved_docs]) if retrieved_docs else "No relevant documents found."
         chat_memory = get_memory()
         ai_response = generate_response(user_query, context, retrieved_docs, chat_memory)
