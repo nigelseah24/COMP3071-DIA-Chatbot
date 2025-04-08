@@ -1,22 +1,21 @@
 import streamlit as st
 from pinecone import Pinecone
 from openai import OpenAI
-import os
-from dotenv import load_dotenv
 from namespace_classifier import get_regulation_page  # Import our regulation function
 
-# Load environment variables
-load_dotenv()
+# Instead of loading from .env file, access keys like this:
+OPENAI_API_KEY = st.secrets["general"]["OPENAI_API_KEY"]
+PINECONE_API_KEY = st.secrets["general"]["PINECONE_API_KEY"]
 
 # Initialize Pinecone and OpenAI
-pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
+pc = Pinecone(api_key=PINECONE_API_KEY)
 index = pc.Index("quality-manual")
 
 # FastAPI backend URL
 FASTAPI_URL = "http://localhost:8000/retrieve"  # Change if necessary
 
 # OpenAI API Key
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+client = OpenAI(api_key=OPENAI_API_KEY)
 
 # Streamlit UI Setup
 st.set_page_config(page_title="Quality Manual Chatbot", layout="wide")
