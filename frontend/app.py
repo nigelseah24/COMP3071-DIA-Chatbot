@@ -59,7 +59,6 @@ def get_relevant_documents(query, namespace="general"):
         st.error("Failed to fetch documents from backend. Please try again.")
         return []
 
-# Function to generate a response using OpenAI (for regular conversation)
 def generate_response(query, context, sources, chat_memory):
     prompt = f"""
     You are an AI assistant specialized in the university's Quality Manual.
@@ -87,11 +86,41 @@ def generate_response(query, context, sources, chat_memory):
         messages=[{"role": "system", "content": prompt}],
         max_tokens=1000
     )
+    
     response_content = response.choices[0].message.content.strip()
+
+    # Define personal/greeting statements to check
+    personal_statements = [
+        "thank you", 
+        "thanks", 
+        "hello", 
+        "hi", 
+        "hey", 
+        "how's it going", 
+        "goodbye",
+        "bye",
+        "ok", 
+        "okay"
+    ]
+
+    # If any of these statements are found in the user's query, skip adding sources
+    if any(ps in query.lower() for ps in personal_statements):
+        return response_content
+    
+    # Otherwise, process sources (and remove duplicates)
     if sources:
-        sources_list = "\n".join([f"- [{src['section_header']}]({src['source_url']})" for src in sources])
+        seen = set()
+        unique_sources = []
+        for src in sources:
+            src_entry = f"- [{src['section_header']}]({src['source_url']})"
+            if src_entry not in seen:
+                seen.add(src_entry)
+                unique_sources.append(src_entry)
+        sources_list = "\n".join(unique_sources)
         response_content += f"\n\n**Sources:**\n{sources_list}"
+
     return response_content
+
 
 # Main user input
 user_query = st.chat_input("Type your question here...")
