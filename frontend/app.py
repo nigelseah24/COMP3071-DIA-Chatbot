@@ -23,7 +23,7 @@ st.title("📖 Quality Manual Chatbot")
 st.write("Ask me anything about the Quality Manual!")
 
 # Display Academic Regulations explanation when checkbox is selected
-regulations_mode = st.checkbox("Ask regarding Academic Regulations")
+regulations_mode = st.toggle("Ask regarding Academic Regulations")
 
 if regulations_mode:
     st.subheader("What are Academic Regulations?")
@@ -99,7 +99,9 @@ def generate_response(query, context, sources, chat_memory):
     Previous conversation:
     {chat_memory}
     
-    Now, answer the user's query based on your knowledge on the Quality Manual of the University of Nottingham.
+    Now, answer the user's query based on your knowledge on the Quality Manual of the University of Nottingham. 
+    You should also ask the user for clarification if the question is ambiguous or if you need more information to provide a complete answer.
+    You should also ask the user follow-up questions regarding the topic if you think it is necessary.
     If you don't know the answer, you can refer to the retrieved context to generate an answer.
     If you don't know the answer even with the context, say 'I'm not sure based on the available information.'
 

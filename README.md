@@ -54,7 +54,7 @@ To install the required packages for this project, run the following command:
 pip install -r requirements.txt
 ```
 
-### 4. Create a file called secrets.toml for GPT API Key in the root directory:
+### 4. Create a file called secrets.toml for GPT API Key in the frontend/.streamlit directory:
 
 Paste the following code into your .env file, replacing "YOUR_API_KEY" with the string of the actual api key:
 
