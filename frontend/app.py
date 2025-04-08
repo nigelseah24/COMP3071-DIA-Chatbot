@@ -1,5 +1,5 @@
 import streamlit as st
-import requests
+from pinecone import Pinecone
 from openai import OpenAI
 import os
 from dotenv import load_dotenv
@@ -7,6 +7,10 @@ from namespace_classifier import get_regulation_page  # Import our regulation fu
 
 # Load environment variables
 load_dotenv()
+
+# Initialize Pinecone and OpenAI
+pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
+index = pc.Index("quality-manual")
 
 # FastAPI backend URL
 FASTAPI_URL = "http://localhost:8000/retrieve"  # Change if necessary
@@ -52,12 +56,38 @@ def get_memory():
 # Function to get relevant documents from FastAPI (for regular conversation)
 def get_relevant_documents(query, namespace="general"):
     payload = {"query": query, "top_k": 5, "namespace": namespace}
-    response = requests.post(FASTAPI_URL, json=payload)
-    if response.status_code == 200:
-        return response.json().get("results", [])
-    else:
-        st.error("Failed to fetch documents from backend. Please try again.")
-        return []
+    # response = requests.post(FASTAPI_URL, json=payload)
+    # if response.status_code == 200:
+    #     return response.json().get("results", [])
+    # else:
+    #     st.error("Failed to fetch documents from backend. Please try again.")
+    #     return []
+    results = retrieve_relevant_vectors(query, namespace=namespace, top_k=5)
+    return results
+
+def retrieve_relevant_vectors(query: str, namespace: str, top_k: int = 5):
+    # Get the embedding for the query
+    embedding_response = client.embeddings.create(
+        input=query,
+        model="text-embedding-3-small"  # Use the same model as used for upserting
+    )
+    query_embedding = embedding_response.data[0].embedding
+
+    # Perform similarity search in Pinecone
+    search_results = index.query(vector=query_embedding, top_k=top_k, include_metadata=True, namespace=namespace)
+
+    # Format the response
+    relevant_docs = []
+    for match in search_results["matches"]:
+        relevant_docs.append({
+            "score": match["score"],
+            "content": match["metadata"].get("content", "No content available"),
+            "source_url": match["metadata"].get("source_url", "No URL available"),
+            "section_header": match["metadata"].get("section_header", "No header available"),
+            "intro_paragraph": match["metadata"].get("intro_paragraph", "No intro available")
+        })
+
+    return relevant_docs
 
 def generate_response(query, context, sources, chat_memory):
     prompt = f"""
