@@ -11,9 +11,6 @@ PINECONE_API_KEY = st.secrets["general"]["PINECONE_API_KEY"]
 pc = Pinecone(api_key=PINECONE_API_KEY)
 index = pc.Index("quality-manual")
 
-# FastAPI backend URL
-FASTAPI_URL = "http://localhost:8000/retrieve"  # Change if necessary
-
 # OpenAI API Key
 client = OpenAI(api_key=OPENAI_API_KEY)
 
@@ -52,15 +49,39 @@ for message in st.session_state.messages:
 def get_memory():
     return "\n".join([f"{m['role'].capitalize()}: {m['content']}" for m in st.session_state.messages[-5:]])
 
+# Function to analyze if a query requires similarity search
+def analyze_query_needs_search(query, chat_memory):
+    prompt = f"""
+    You are an AI assistant specialized in analyzing queries for a university's Quality Manual chatbot.
+    
+    Your task is to determine if the following user query requires searching a specialized knowledge base 
+    (the university's Quality Manual) or if it can be answered directly without needing to look up specific information.
+    
+    Previous conversation:
+    {chat_memory}
+    
+    User Query: {query}
+    
+    Analyze the query and respond ONLY with one of these options:
+    1. "NEEDS_SEARCH" - if the query is asking for specific information from the Quality Manual or regulations 
+       that would require looking up facts, policies, procedures, or other specific content.
+    2. "NO_SEARCH" - if the query is a greeting, casual remark, clarification question, or can be answered 
+       based on general knowledge about universities without specific manual details.
+    
+    Response:
+    """
+    
+    response = client.chat.completions.create(
+        model="ft:gpt-3.5-turbo-0125:personal::BEXJyNN3",  # Use the same model as your main responses
+        messages=[{"role": "system", "content": prompt}],
+        max_tokens=10
+    )
+    
+    decision = response.choices[0].message.content.strip()
+    return "NEEDS_SEARCH" in decision
+
 # Function to get relevant documents from FastAPI (for regular conversation)
 def get_relevant_documents(query, namespace="general"):
-    payload = {"query": query, "top_k": 5, "namespace": namespace}
-    # response = requests.post(FASTAPI_URL, json=payload)
-    # if response.status_code == 200:
-    #     return response.json().get("results", [])
-    # else:
-    #     st.error("Failed to fetch documents from backend. Please try again.")
-    #     return []
     results = retrieve_relevant_vectors(query, namespace=namespace, top_k=5)
     return results
 
@@ -87,6 +108,34 @@ def retrieve_relevant_vectors(query: str, namespace: str, top_k: int = 5):
         })
 
     return relevant_docs
+
+def generate_response_without_search(query, chat_memory):
+    """Generate a response without doing a similarity search"""
+    prompt = f"""
+    You are an AI assistant specialized in the University of Nottingham's Quality Manual.
+    Your primary role is to provide accurate information based on your general knowledge about university procedures.
+    This is for queries that don't require specific lookups in the Quality Manual.
+    
+    Below is the previous conversation history. Use this to maintain context when answering the user's question:
+    
+    Previous conversation:
+    {chat_memory}
+    
+    User Query: {query}
+    
+    If the user is asking for specific details from the Quality Manual, inform them that you're not certain about these specific details,
+    and you'd need to search the manual for accurate information. Respond conversationally but don't make up specific details about the Quality Manual.
+    
+    Response:
+    """
+    
+    response = client.chat.completions.create(
+        model="ft:gpt-3.5-turbo-0125:personal::BEXJyNN3",  # Replace as needed
+        messages=[{"role": "system", "content": prompt}],
+        max_tokens=500
+    )
+    
+    return response.choices[0].message.content.strip()
 
 def generate_response(query, context, sources, chat_memory):
     prompt = f"""
@@ -119,24 +168,6 @@ def generate_response(query, context, sources, chat_memory):
     )
     
     response_content = response.choices[0].message.content.strip()
-
-    # Define personal/greeting statements to check
-    personal_statements = [
-        "thank you", 
-        "thanks", 
-        "hello", 
-        "hi", 
-        "hey", 
-        "how's it going", 
-        "goodbye",
-        "bye",
-        "ok", 
-        "okay"
-    ]
-
-    # If any of these statements are found in the user's query, skip adding sources
-    if any(ps in query.lower() for ps in personal_statements):
-        return response_content
     
     # Otherwise, process sources (and remove duplicates)
     if sources:
@@ -148,7 +179,7 @@ def generate_response(query, context, sources, chat_memory):
                 seen.add(src_entry)
                 unique_sources.append(src_entry)
         sources_list = "\n".join(unique_sources)
-        response_content += f"\n\n**Sources:**\n{sources_list}"
+        response_content += f"\n\n**More information:**\n{sources_list}"
 
     return response_content
 
@@ -179,6 +210,9 @@ if user_query:
               and "regulations_year" not in st.session_state.regulations_flow):
             # Step 2: Ask for the program type and validate it.
             student_type_input = user_query.strip().lower()
+            with st.chat_message("user"):
+                st.markdown(user_query)
+            st.session_state.messages.append({"role": "user", "content": user_query})
             if student_type_input not in ["undergraduate", "postgraduate"]:
                 with st.chat_message("assistant"):
                     st.markdown("Please enter a valid program type: **undergraduate** or **postgraduate**.")
@@ -186,8 +220,6 @@ if user_query:
             else:
                 st.session_state.regulations_flow["student_type"] = student_type_input
                 st.session_state.messages.append({"role": "user", "content": user_query})
-                with st.chat_message("user"):
-                    st.markdown(student_type_input)
                 # Only ask about honours for undergraduate queries.
                 if student_type_input == "undergraduate":
                     with st.chat_message("assistant"):
@@ -206,15 +238,15 @@ if user_query:
               and "regulations_year" not in st.session_state.regulations_flow):
             # Step 3 (for undergraduate): Ask for honour type and validate it.
             honour_type_input = user_query.strip().lower()
+            with st.chat_message("user"):
+                st.markdown(user_query)
+            st.session_state.messages.append({"role": "user", "content": user_query})
             if honour_type_input not in ["honours", "non-honours"]:
                 with st.chat_message("assistant"):
                     st.markdown("Please enter a valid honour type: **honours** or **non-honours**.")
                 st.session_state.messages.append({"role": "assistant", "content": "Invalid honour type. Please enter either 'honours' or 'non-honours'."})
             else:
                 st.session_state.regulations_flow["honour_type"] = honour_type_input
-                st.session_state.messages.append({"role": "user", "content": user_query})
-                with st.chat_message("user"):
-                    st.markdown(honour_type_input)
                 with st.chat_message("assistant"):
                     st.markdown(f"Which **year** of {st.session_state.regulations_flow['student_type']} regulations would you like to refer to?")
                 st.session_state.messages.append({"role": "assistant", "content": f"Which **year** of {st.session_state.regulations_flow['student_type']} regulations would you like to refer to?"})
@@ -226,6 +258,9 @@ if user_query:
               and "regulations_year" not in st.session_state.regulations_flow):
             # Step 4: Ask for the year and validate it.
             year_input = user_query.strip()
+            with st.chat_message("user"):
+                st.markdown(year_input)
+            st.session_state.messages.append({"role": "user", "content": year_input})
             try:
                 reg_year = int(year_input)
             except ValueError:
@@ -234,10 +269,6 @@ if user_query:
                 st.session_state.messages.append({"role": "assistant", "content": "Invalid year. Please enter a valid year (e.g., 2020)."})
             else:
                 st.session_state.regulations_flow["regulations_year"] = year_input
-                with st.chat_message("user"):
-                    st.markdown(year_input)
-                st.session_state.messages.append({"role": "user", "content": year_input})
-                
                 # Now that we have all required information, call get_regulation_page.
                 program = st.session_state.regulations_flow["student_type"]
                 if program == "undergraduate":
@@ -258,6 +289,10 @@ if user_query:
                 ai_response = generate_response(st.session_state['regulations_flow']['regulations_query'], context, retrieved_docs, chat_memory)
                 
                 with st.chat_message("assistant"):
+                    st.markdown("Searching...")
+                st.session_state.messages.append({"role": "assistant", "content": "Searching..."})
+
+                with st.chat_message("assistant"):
                     st.markdown(ai_response)
 
                 st.session_state.messages.append({"role": "assistant", "content": ai_response})
@@ -268,6 +303,10 @@ if user_query:
             st.session_state.messages.append({"role": "user", "content": user_query})
             with st.chat_message("user"):
                 st.markdown(st.session_state.regulations_flow["regulations_query"])
+            
+            with st.chat_message("assistant"):
+                st.markdown("Searching...")
+            st.session_state.messages.append({"role": "assistant", "content": "Searching..."})
             
             # Re-run the lookup if needed.
             try:
@@ -287,11 +326,7 @@ if user_query:
             context = "\n\n".join([doc["content"] for doc in retrieved_docs]) if retrieved_docs else "No relevant documents found."
             chat_memory = get_memory()
             ai_response = generate_response(st.session_state['regulations_flow']['regulations_query'], context, retrieved_docs, chat_memory)
-            
-            with st.chat_message("assistant"):
-                st.markdown(f"The relevant regulation page is: **{regulation_id}**")
-            st.session_state.messages.append({"role": "assistant", "content": f"The relevant regulation page is: **{regulation_id}**"})
-            
+
             with st.chat_message("assistant"):
                 st.markdown(ai_response)
 
@@ -301,14 +336,36 @@ if user_query:
         # Reset regulations flow if not in regulations mode
         st.session_state.regulations_flow = {}
         st.session_state.current_regulations_step = 1
-        # Regular conversation logic:
-        st.session_state.messages.append({"role": "user", "content": user_query})
+        
+        # Regular conversation logic (updated):
         with st.chat_message("user"):
             st.markdown(user_query)
-        retrieved_docs = get_relevant_documents(user_query, namespace="general")
-        context = "\n\n".join([doc["content"] for doc in retrieved_docs]) if retrieved_docs else "No relevant documents found."
+        st.session_state.messages.append({"role": "user", "content": user_query})
+        
+        # Get chat memory for context
         chat_memory = get_memory()
-        ai_response = generate_response(user_query, context, retrieved_docs, chat_memory)
+        
+        # First, determine if we need to perform a search
+        needs_search = analyze_query_needs_search(user_query, chat_memory)
+        
+        if needs_search:
+            # If search is needed, perform the similarity search
+            with st.chat_message("assistant"):
+                st.markdown("Looking up information...")
+            
+            retrieved_docs = get_relevant_documents(user_query, namespace="general")
+            context = "\n\n".join([doc["content"] for doc in retrieved_docs]) if retrieved_docs else "No relevant documents found."
+            ai_response = generate_response(user_query, context, retrieved_docs, chat_memory)
+        else:
+            # If search is not needed, generate a direct response
+            ai_response = generate_response_without_search(user_query, chat_memory)
+        
+        # Update the chat with the final response
+        # Remove the "Looking up information..." message if it exists
+        if len(st.session_state.messages) > 0 and st.session_state.messages[-1]["content"] == "Looking up information...":
+            st.session_state.messages.pop()
+        
         with st.chat_message("assistant"):
             st.markdown(ai_response)
+        
         st.session_state.messages.append({"role": "assistant", "content": ai_response})
