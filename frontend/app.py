@@ -67,6 +67,9 @@ def analyze_query_needs_search(query, chat_memory):
        that would require looking up facts, policies, procedures, or other specific content.
     2. "NO_SEARCH" - if the query is a greeting, casual remark, clarification question, or can be answered 
        based on general knowledge about universities without specific manual details.
+
+    If the user's query is about academic regulations (passing marks, module selection and credit limit, 
+    Assessment and Re-assessment Procedures, degree classification, progression requirements), return "NO_SEARCH".
     
     Response:
     """
@@ -122,9 +125,10 @@ def generate_response_without_search(query, chat_memory):
     {chat_memory}
     
     User Query: {query}
-    
-    If the user is asking for specific details from the Quality Manual, inform them that you're not certain about these specific details,
-    and you'd need to search the manual for accurate information. Respond conversationally but don't make up specific details about the Quality Manual.
+
+    IMPORTANT: **If the user's query is about academic regulations (passing marks, module selection and credit limit, 
+    Assessment and Re-assessment Procedures, degree classification, progression requirements), you should ask them 
+    to toggle the button to ask about academic regulations.**
     
     Response:
     """
