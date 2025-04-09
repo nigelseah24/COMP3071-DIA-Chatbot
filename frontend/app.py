@@ -67,9 +67,6 @@ def analyze_query_needs_search(query, chat_memory):
        that would require looking up facts, policies, procedures, or other specific content.
     2. "NO_SEARCH" - if the query is a greeting, casual remark, clarification question, or can be answered 
        based on general knowledge about universities without specific manual details.
-
-    If the user's query is about academic regulations (passing marks, module selection and credit limit, 
-    Assessment and Re-assessment Procedures, degree classification, progression requirements), return "NO_SEARCH".
     
     Response:
     """
@@ -186,7 +183,6 @@ def generate_response(query, context, sources, chat_memory):
         response_content += f"\n\n**More information:**\n{sources_list}"
 
     return response_content
-
 
 # Main user input
 user_query = st.chat_input("Type your question here...")
