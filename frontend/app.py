@@ -20,14 +20,14 @@ st.title("📖 Quality Manual Chatbot")
 st.write("Ask me anything about the Quality Manual!")
 
 # Display Academic Regulations explanation when checkbox is selected
-regulations_mode = st.toggle("Ask regarding Academic Regulations")
+regulations_mode = st.toggle("Ask regarding Academic Regulations (Undergraduate/Postgraduate)")
 
 if regulations_mode:
-    st.subheader("What are Academic Regulations?")
+    st.subheader("What are Academic Regulations? (Undergraduate/Postgraduate)")
     st.markdown("""
-    **Academic Regulations** are a set of formal guidelines that outline the rules and expectations for undergraduate (and postgraduate) study. They ensure consistency and fairness in academic processes. Here are some key examples of what the content covers:
+    **Academic Regulations** are a set of formal guidelines that outline the rules and expectations for undergraduate and postgraduate study. They ensure consistency and fairness in academic processes. Here are some key examples of what the content covers:
     
-    - **Passing Marks:** The regulations specify that the pass mark for a module is **40%**, which is the minimum required to pass.
+    - **Passing Marks:** Minimum marks that are required for a student to pass a module or course.
     - **Module Selection and Credit Limits:** Students must select modules in accordance with their programme's requirements. There are also limits on the number of credits a student can register for in any one semester.
     - **Assessment and Re-assessment Procedures:** Guidelines detail the processes for assessments and the options available if a module is failed, including opportunities for re-assessment.
     - **Degree Classification:** They outline how final marks are calculated and how degree classifications (e.g., First Class, Second Class, etc.) are determined.
@@ -49,36 +49,56 @@ for message in st.session_state.messages:
 def get_memory():
     return "\n".join([f"{m['role'].capitalize()}: {m['content']}" for m in st.session_state.messages[-5:]])
 
-# Function to analyze if a query requires similarity search
+# Function to analyze if the query requires a similarity search
 def analyze_query_needs_search(query, chat_memory):
     prompt = f"""
     You are an AI assistant specialized in analyzing queries for a university's Quality Manual chatbot.
     
-    Your task is to determine if the following user query requires searching a specialized knowledge base 
-    (the university's Quality Manual) or if it can be answered directly without needing to look up specific information.
+    Your task is to determine if the following user query pertains to any of the specific topics listed below that require performing a detailed similarity search:
     
+    - coming soon
+    - admissions
+    - programme
+    - modules
+    - assessment
+    - awards and degree classification
+    - personal tutoring
+    - student support and development
+    - concerns, complaints and appeals
+    - registration and attendance
+    - research degree programmes
+    - student engagement and representation
+    - studies away from the university
+    - governance
+    - professional work based learning
+    - contingency classification and progression regulations
+    - exceptional classification
+    - exceptional regulations: Covid-19
+
+    If the query is related to any of these topics, reply with ONLY "NEED_SEARCH". 
+
+    If the query is related to academic regulations (passing marks, module selection and credit limit,
+    assessment and re-assessment procedures, degree classification, progression requirements), reply with ONLY "NO_SEARCH".
+
+    If the query is not related to any of these topics, reply with ONLY "NO_SEARCH".
+
     Previous conversation:
     {chat_memory}
     
     User Query: {query}
     
-    Analyze the query and respond ONLY with one of these options:
-    1. "NEEDS_SEARCH" - if the query is asking for specific information from the Quality Manual or regulations 
-       that would require looking up facts, policies, procedures, or other specific content.
-    2. "NO_SEARCH" - if the query is a greeting, casual remark, clarification question, or can be answered 
-       based on general knowledge about universities without specific manual details.
-    
     Response:
     """
     
     response = client.chat.completions.create(
-        model="ft:gpt-3.5-turbo-0125:personal::BEXJyNN3",  # Use the same model as your main responses
+        model="ft:gpt-3.5-turbo-0125:personal::BEXJyNN3",  # Use your designated model
         messages=[{"role": "system", "content": prompt}],
         max_tokens=10
     )
     
     decision = response.choices[0].message.content.strip()
-    return "NEEDS_SEARCH" in decision
+    return "NEED_SEARCH" in decision
+
 
 # Function to get relevant documents from FastAPI (for regular conversation)
 def get_relevant_documents(query, namespace="general"):
@@ -114,7 +134,10 @@ def generate_response_without_search(query, chat_memory):
     prompt = f"""
     You are an AI assistant specialized in the University of Nottingham's Quality Manual.
     Your primary role is to provide accurate information based on your general knowledge about university procedures.
-    This is for queries that don't require specific lookups in the Quality Manual.
+    If the user's query is not related to the university's quality manual, do not provide any information that is 
+    not related to the university's Quality Manual. Instead, just tell them that you are a Quality Manual Chatbot and
+    cannot provide information outside of that scope.
+    However, if the user's input is a greeting or a casual remark (e.g., "hi there," "hello," "how's it going?"), respond with a friendly introduction and offer assistance.
     
     Below is the previous conversation history. Use this to maintain context when answering the user's question:
     
@@ -142,7 +165,6 @@ def generate_response(query, context, sources, chat_memory):
     prompt = f"""
     You are an AI assistant specialized in the university's Quality Manual.
     Your primary role is to provide accurate information based on the provided context.
-    However, if the user's input is a greeting or a casual remark (e.g., "hi there," "hello," "how's it going?"), respond with a friendly introduction and offer assistance.
     
     Below is the previous conversation history. Use this to maintain context when answering the user's question:
     
@@ -213,11 +235,16 @@ if user_query:
             with st.chat_message("user"):
                 st.markdown(user_query)
             st.session_state.messages.append({"role": "user", "content": user_query})
-            if student_type_input not in ["undergraduate", "postgraduate"]:
+            if student_type_input not in ["undergraduate", "postgraduate", "ug", "pg", "undergrad", "postgrad"]:
                 with st.chat_message("assistant"):
                     st.markdown("Please enter a valid program type: **undergraduate** or **postgraduate**.")
                 st.session_state.messages.append({"role": "assistant", "content": "Invalid program type. Please enter either 'undergraduate' or 'postgraduate'."})
             else:
+                # Normalize student_type input
+                if student_type_input in ["undergraduate", "ug", "undergrad"]:
+                    student_type_input = "undergraduate"
+                elif student_type_input in ["postgraduate", "pg", "postgrad"]:
+                    student_type_input = "postgraduate"
                 st.session_state.regulations_flow["student_type"] = student_type_input
                 st.session_state.messages.append({"role": "user", "content": user_query})
                 # Only ask about honours for undergraduate queries.
@@ -241,11 +268,16 @@ if user_query:
             with st.chat_message("user"):
                 st.markdown(user_query)
             st.session_state.messages.append({"role": "user", "content": user_query})
-            if honour_type_input not in ["honours", "non-honours"]:
+            if honour_type_input not in ["honours", "non-honours", "hons", "non-hons", "h", "nh"]:
                 with st.chat_message("assistant"):
                     st.markdown("Please enter a valid honour type: **honours** or **non-honours**.")
                 st.session_state.messages.append({"role": "assistant", "content": "Invalid honour type. Please enter either 'honours' or 'non-honours'."})
             else:
+                # Normalize honour_type input
+                if honour_type_input in ["honours", "hons", "h"]:
+                    honour_type_input = "honours"
+                elif honour_type_input in ["non-honours", "non-hons", "nh"]:
+                    honour_type_input = "non-honours"
                 st.session_state.regulations_flow["honour_type"] = honour_type_input
                 with st.chat_message("assistant"):
                     st.markdown(f"Which **year** of {st.session_state.regulations_flow['student_type']} regulations would you like to refer to?")
