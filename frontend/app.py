@@ -17,7 +17,7 @@ client = OpenAI(api_key=OPENAI_API_KEY)
 # Streamlit UI Setup
 st.set_page_config(page_title="Quality Manual Chatbot", layout="wide")
 st.title("📖 Quality Manual Chatbot")
-st.write("Ask me anything about the Quality Manual!")
+st.write("Please be more specific when asking your question to get the best results.")
 
 # Display Academic Regulations explanation when checkbox is selected
 regulations_mode = st.toggle("Ask regarding Academic Regulations (Undergraduate/Postgraduate)")
@@ -49,39 +49,51 @@ for message in st.session_state.messages:
 def get_memory():
     return "\n".join([f"{m['role'].capitalize()}: {m['content']}" for m in st.session_state.messages[-5:]])
 
+    # - coming soon
+    # - admissions
+    # - programme
+    # - modules
+    # - assessment
+    # - awards and degree classification
+    # - personal tutoring
+    # - student support and development
+    # - concerns, complaints and appeals
+    # - registration and attendance
+    # - research degree programmes
+    # - student engagement and representation
+    # - studies away from the university
+    # - governance
+    # - professional work based learning
+    # - contingency classification and progression regulations
+    # - exceptional classification
+    # - exceptional regulations: Covid-19
+
 # Function to analyze if the query requires a similarity search
 def analyze_query_needs_search(query, chat_memory):
     prompt = f"""
-    You are an AI assistant specialized in analyzing queries for a university's Quality Manual chatbot.
+    You are an AI assistant specialised in analysing queries for the University of Nottingham's Quality Manual chatbot.
     
-    Your task is to determine if the following user query pertains to any of the specific topics listed below that require performing a detailed similarity search:
+    Your task is to determine if the following user query requires a similarity search in the university's Quality Manual database.
     
-    - coming soon
-    - admissions
-    - programme
-    - modules
-    - assessment
-    - awards and degree classification
-    - personal tutoring
-    - student support and development
-    - concerns, complaints and appeals
-    - registration and attendance
-    - research degree programmes
-    - student engagement and representation
-    - studies away from the university
-    - governance
-    - professional work based learning
-    - contingency classification and progression regulations
-    - exceptional classification
-    - exceptional regulations: Covid-19
-
-    If the query is related to any of these topics, reply with ONLY "NEED_SEARCH". 
-
-    If the query is related to academic regulations (passing marks, module selection and credit limit,
-    assessment and re-assessment procedures, degree classification, progression requirements), reply with ONLY "NO_SEARCH".
-
-    If the query is not related to any of these topics, reply with ONLY "NO_SEARCH".
-
+    Return ONLY "NEED_SEARCH" or "NO_SEARCH" without any explanation.
+    
+    Return "NO_SEARCH" if the query matches ANY of these categories:
+    1. Social interactions: greetings, thanks, farewells, casual remarks (e.g., "hi there", "thank you", "goodbye", "how are you")
+    2. Academic regulations already covered in standard knowledge:
+       - Passing marks and grade criteria
+       - Module selection and credit limits
+       - Assessment and re-assessment procedures
+       - Degree classification methodology
+       - Progression requirements
+    3. General questions unrelated to university policies (e.g., "what's the weather today", "tell me a joke")
+    
+    Return "NEED_SEARCH" if the query relates to ANY of these:
+    1. Specific university quality procedures, standards or guidelines
+    2. University-specific policies not covered in the NO_SEARCH categories
+    3. Administrative processes unique to this university
+    4. Questions specifically mentioning the "quality manual" or its contents
+    5. Questions about university-specific forms, deadlines, or requirements
+    
     Previous conversation:
     {chat_memory}
     
@@ -378,7 +390,8 @@ if user_query:
         chat_memory = get_memory()
         
         # First, determine if we need to perform a search
-        needs_search = analyze_query_needs_search(user_query, chat_memory)
+        # needs_search = analyze_query_needs_search(user_query, chat_memory)
+        needs_search = True
         
         if needs_search:
             # If search is needed, perform the similarity search
