@@ -17,7 +17,7 @@ client = OpenAI(api_key=OPENAI_API_KEY)
 # Streamlit UI Setup
 st.set_page_config(page_title="Quality Manual Chatbot", layout="wide")
 st.title("📖 Quality Manual Chatbot")
-st.write("Please be more specific when asking your question to get the best results. (e.g., 'What should I do...', 'How can I do this...')")
+st.write("Please be more specific when asking your question to get the best results. (e.g., 'What is the...')")
 
 # Display Academic Regulations explanation when checkbox is selected
 regulations_mode = st.toggle("Ask regarding Academic Regulations (Undergraduate/Postgraduate)")
@@ -134,7 +134,7 @@ def generate_response_without_search(query, chat_memory):
     You are an AI assistant specialized in the University of Nottingham's Quality Manual.
     As a Chatbot, you should take into consideration the user's tone, mood, and the context of the conversation. 
     If the user's mood is negative, you should respond in a more empathetic manner.
-    
+
     Your primary role is to provide accurate information based on your general knowledge about university procedures.
     If the user's query is not related to the university's quality manual, do not provide any information that is 
     not related to the university's Quality Manual. Instead, just tell them that you are a Quality Manual Chatbot and
