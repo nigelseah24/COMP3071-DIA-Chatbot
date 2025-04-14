@@ -17,7 +17,7 @@ client = OpenAI(api_key=OPENAI_API_KEY)
 # Streamlit UI Setup
 st.set_page_config(page_title="Quality Manual Chatbot", layout="wide")
 st.title("📖 Quality Manual Chatbot")
-st.write("Please be more specific when asking your question to get the best results.")
+st.write("Please be more specific when asking your question to get the best results. (e.g., 'What should I do...', 'How can I do this...')")
 
 # Display Academic Regulations explanation when checkbox is selected
 regulations_mode = st.toggle("Ask regarding Academic Regulations (Undergraduate/Postgraduate)")
@@ -79,23 +79,10 @@ def analyze_query_needs_search(query, chat_memory):
     
     Return "NO_SEARCH" if the query matches ANY of these categories:
     1. Social interactions: greetings, thanks, farewells, casual remarks (e.g., "hi there", "thank you", "goodbye", "how are you")
-    2. Academic regulations already covered in standard knowledge:
-       - Passing marks and grade criteria
-       - Module selection and credit limits
-       - Assessment and re-assessment procedures
-       - Degree classification methodology
-       - Progression requirements
-    3. General questions unrelated to university policies (e.g., "what's the weather today", "tell me a joke")
+    2. General questions unrelated to university policies (e.g., "what's the weather today", "tell me a joke")
     
-    Return "NEED_SEARCH" if the query relates to ANY of these:
-    1. Specific university quality procedures, standards or guidelines
-    2. University-specific policies not covered in the NO_SEARCH categories
-    3. Administrative processes unique to this university
-    4. Questions specifically mentioning the "quality manual" or its contents
-    5. Questions about university-specific forms, deadlines, or requirements
-    
-    Previous conversation:
-    {chat_memory}
+    Else, return "NEED_SEARCH".
+    You are not allowed to provide any information outside of the university's Quality Manual.
     
     User Query: {query}
     
@@ -145,6 +132,7 @@ def generate_response_without_search(query, chat_memory):
     """Generate a response without doing a similarity search"""
     prompt = f"""
     You are an AI assistant specialized in the University of Nottingham's Quality Manual.
+    As a Chatbot, you should take into consideration the user's tone, mood, and the context of the conversation. 
     Your primary role is to provide accurate information based on your general knowledge about university procedures.
     If the user's query is not related to the university's quality manual, do not provide any information that is 
     not related to the university's Quality Manual. Instead, just tell them that you are a Quality Manual Chatbot and
@@ -176,7 +164,8 @@ def generate_response_without_search(query, chat_memory):
 def generate_response(query, context, sources, chat_memory):
     prompt = f"""
     You are an AI assistant specialized in the university's Quality Manual.
-    Your primary role is to provide accurate information based on the provided context.
+    As a Chatbot, you should take into consideration the user's tone, mood, and the context of the conversation. 
+    However, your primary role is to provide accurate information based on the provided context.
     
     Below is the previous conversation history. Use this to maintain context when answering the user's question:
     
@@ -390,8 +379,8 @@ if user_query:
         chat_memory = get_memory()
         
         # First, determine if we need to perform a search
-        # needs_search = analyze_query_needs_search(user_query, chat_memory)
-        needs_search = True
+        needs_search = analyze_query_needs_search(user_query, chat_memory)
+        # needs_search = True
         
         if needs_search:
             # If search is needed, perform the similarity search
