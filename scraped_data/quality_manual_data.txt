@@ -11943,27 +11943,16 @@ Policy on marking and grading
 7.
 Weighted numerical average is translated into degree classification according to Table 1.
 Table 1
-I
-=
-70%+
-II-1
-=
-60% - 69%
-II-2
-=
-50% - 59%
-III
-=
-40% - 49%
-Pass
-* that is, an unclassified degree and therefore awarded without honours.
-=
-40%+ (which can include reassessment marks from Parts I/II/III)
+First class (I) = 70%+
+Second upper (II-1) = 60% - 69%
+Second lower (II-2) = 50% - 59%
+Third class (III) = 40% - 49%
+Pass (that is, an unclassified degree and therefore awarded without honours) = 40%+ (which can include reassessment marks from Parts I/II/III)
 Only the following rounded marks will be regarded as “borderline”:
-68/69 Borderline I
-58/59 Borderline II-1
-48/49 Borderline II-2
-At the III/Fail boundary there is no borderline.
+68/69 Borderline First class (I)
+58/59 Borderline Second upper (II-1)
+48/49 Borderline Second lower (II-2)
+At the Third class (III) or Fail boundary there is no borderline.
 Other Undergraduate awards
 Includes:
 classifications; borderlines; calculating an overall average
@@ -12052,26 +12041,16 @@ Policy on marking and grading
 7.
 Weighted numerical average is translated into degree classification according to Table 1.
 Table 1
-I
-=
-70%+
-II-1
-=
-60% - 69%
-II-2
-=
-50% - 59%
-III
-=
-40% - 49%
-Pass * that is, an unclassified degree and therefore awarded without honours.
-=
-40%+ (which can include reassessment marks from Parts I/II/III)
+First class (I) = 70%+
+Second upper (II-1) = 60% - 69%
+Second lower (II-2) = 50% - 59%
+Third class (III) = 40% - 49%
+Pass (that is, an unclassified degree and therefore awarded without honours) = 40%+ (which can include reassessment marks from Parts I/II/III)
 Only the following rounded marks will be regarded as “borderline”:
-68/69 Borderline I
-58/59 Borderline II-1
-48/49 Borderline II-2
-At the III/Fail boundary there is no borderline.
+68/69 Borderline First class (I)
+58/59 Borderline Second upper (II-1)
+48/49 Borderline Second lower (II-2)
+At the Third class (III) or Fail boundary there is no borderline.
 Other Undergraduate awards
 Includes:
 classifications; borderlines; calculating an overall average
@@ -12164,26 +12143,16 @@ Policy on marking and grading
 7.
 Weighted numerical average is translated into degree classification according to Table 1.
 Table 1
-I
-=
-70%+
-II-1
-=
-60% - 69%
-II-2
-=
-50% - 59%
-III
-=
-40% - 49%
-Pass * that is, an unclassified degree and therefore awarded without honours.
-=
-40%+ (which can include reassessment marks from Parts I/II/III)
+First class (I) = 70%+
+Second upper (II-1) = 60% - 69%
+Second lower (II-2) = 50% - 59%
+Third class (III) = 40% - 49%
+Pass (that is, an unclassified degree and therefore awarded without honours) = 40%+ (which can include reassessment marks from Parts I/II/III)
 Only the following rounded marks will be regarded as “borderline”:
-68 or 69 Borderline I (individual Programme Specifications state whether the borderline is 68 or 69).
-59 Borderline II-1
-49 Borderline II-2
-39 Borderline III
+68 or 69 Borderline First class (I) (individual Programme Specifications state whether the borderline is 68 or 69).
+59 Borderline Second upper (II-1
+49 Borderline Second lower (II-2)
+39 Borderline Third class (III)
 Model 2 ("ordinal scale")
 Includes:
 unit marks; module grade; median mark
@@ -12193,59 +12162,42 @@ Module grade is calculated from median of literal grades.
 Overall median mark calculated by assigning literal grade to each 10 credits. The total number of grades from which the final median is calculated depends on the weighting of Parts I/II set out in supplementary degree regulations. If there is a 50:50 split between Parts I and II then the calculation is a straightforward median of 24 grades. If Part II counts for twice as much as Part I the Year 3 grades are counted twice.
 Median mark translated into degree classification according to Table 3.
 Table 2
-A+
-78
-A
-75
-A-
-72
-B+
-68
-B
-65
-B-
-62
-C+
-58
-C
-55
-C-
-52
-D+
-48
-D
-45
-D-
-42
-F
-38
-F-
-32
-X
-25
-X-
-15
-Z
-0
+A+ is 78
+A is 75
+A- is 72
+B+ is 68
+B is 65
+B- is 62
+C+ is 58
+C is 55
+C- is 52
+D+ is 48
+D is 45
+D- is 42
+F is 38
+F- is 32
+X is 25
+X- is 15
+Z is 0
 Table 3
 Median Mark
 Degree Class
 A- and above
 I
 B+/ A-
-Borderline I
+Borderline First class (I)
 B+ to B-
-II-1
+Second upper (II-1)
 C+/ B-
-Borderline II-1
+Borderline Second upper (II-1)
 C+ to C-
-II-2
+Second lower (II-2)
 D+/ C-
-Borderline II-2
+Borderline Second lower (II-2)
 D+ to D-
-III
+Third class (III)
 D-/ F
-Borderline III
+Borderline Third class (III)
 When calculating the median of an even number of unit marks within a module Schools should assign the higher of the two marks that span the median - for example, the median of C, C+, B, B would be a B-.
 Model 3 ("thresholds")
 Includes:
@@ -13415,36 +13367,25 @@ Module mark is calculated from unit marks and rounded to a numeric integer
 3.
 Module marks are weighted accordingly to the number of credits attached to the module - for example, a 20 credit module is weighted double compared to a 10 credit module.
 4.
-The relative weightings of Part I/II/III marks are given in programme specifications.
+The relative weightings of Part First class(I)/Second class(II)/Third class(III) marks are given in programme specifications.
 5.
-A weighted numerical average is calculated using the weightings indicated in 3 and 4 above.
+A weighted numerical average  marks is calculated using the weightings indicated in 3 and 4 above.
 6.
-The weighted numerical average is rounded. For more information, please consult the following:
+The weighted numerical average marks is rounded. For more information, please consult the following:
 Policy on marking and grading
 7.
-Weighted numerical average is translated into degree classification according to Table 1.
+Weighted numerical average marks is translated into degree classification according to Table 1.
 Table 1
-I
-=
-70%+
-II-1
-=
-60% - 69%
-II-2
-=
-50% - 59%
-III
-=
-40% - 49%
-Pass
-* that is, an unclassified degree and therefore awarded without honours.
-=
-40%+ (which can include reassessment marks from Parts I/II/III)
+First class (I) = 70%+
+Second upper (II-1) = 60% - 69%
+Second lower (II-2) = 50% - 59%
+Third class (III) = 40% - 49%
+Pass (that is, an unclassified degree and therefore awarded without honours) = 40%+ (which can include reassessment marks from Parts I/II/III)
 Only the following rounded marks will be regarded as “borderline”:
-69 Borderline I
-59 Borderline II-1
-49 Borderline II-2
-At the III/Fail boundary there is no borderline.
+69 Borderline First class (I)
+59 Borderline Second upper (II-1)
+49 Borderline Second lower (II-2)
+At the Third class (III)/Fail boundary there is no borderline.
 Other Undergraduate awards
 Includes:
 classifications; borderlines; calculating an overall average
